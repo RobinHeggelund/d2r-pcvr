@@ -342,7 +342,7 @@ std::vector<PreviewShot> PreviewShots(){
         const auto t=Now();const PagePicture warm=PaintPage(x.m,x.in,tables);shot.warmMs=Ms(t,Now());
         shots.push_back(std::move(shot));
     };
-    static constexpr const char* names[]={"presets","body","combat","aim","targets","shield","wrist","interface","survival","world","vibration","performance","guide","whats-new","more"};
+    static constexpr const char* names[]={"presets","body","combat","aim","targets","shield","wrist","interface","survival","world","foliage","vibration","performance","guide","whats-new","more"};
     static_assert(std::size(names)==size_t(View::Count));
     // Every view with no character (class tags shown).
     for(int v=0;v<int(View::Count);++v){

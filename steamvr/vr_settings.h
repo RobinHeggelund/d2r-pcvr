@@ -21,10 +21,11 @@ namespace framevr::settings {
 // vr_settings_content.h). Presets heads the rail; Guide and WhatsNew open from
 // the page band, not the rail; More (rows no override placed yet, the menu data
 // rules) too, and only while it has rows.
-enum class View : uint8_t { Presets, Body, Combat, Aim, Targets, Shield, Wrist, Interface, Survival, World, Vibration, Performance, Guide, WhatsNew, More, Count };
+enum class View : uint8_t { Presets, Body, Combat, Aim, Targets, Shield, Wrist, Interface, Survival, World, Foliage, Vibration, Performance, Guide, WhatsNew, More, Count };
 enum Key { Motion, Seated, Dominant, Snap, TurnSpeed, Waist, BeltForward,
            Foveation, Sky, Fog, Ceiling, DrawDistance, ObjectDistance,
-           EyeHeight, ArmSpan, BodyCalibration, SkillGestures, WristMap, WristCompass, ControllerLabels, WeaponSkillIndicators, PlanarSpellAim, VitalsLocation, CriticalAlerts, RenderResolution, NavigationLocation, SmoothTurn, OrdinaryMobBars, MenuDistance, TooltipTiming, ProjectileAimAssist, MeleeHitSpeed, VitalsTilt, HapticStrength, HapticMelee, HapticBowDraw, HapticBowRelease, HapticSpell, HapticInteraction, HapticAlert, HapticShortMelee, BloodVisor, BloodWipe, MeleeThrustSpeed, LootLabelSize, CompanionCounts, StrainVignette, OfflinePlayers, ShieldBashSpeed, DesktopOneEye, MapTopDown, MapRotate, FoveationStrength, StereoRendering, DeferGpuWait, TargetHighlight, HeartbeatStart, SpellLock, StaffPoint, LandingCircles, GroundAim, AimHighlights, HighlightRight, HighlightLeft, ElementalHands, EnemySight, BowLaser, ThrowLift, BottlePhysics, PropPhysics, CompanionAi, ShieldGrip, ShieldOut, ShieldUp, ShieldFollow, ShieldRoll, AimFollowsView, CompanionTactical, LeftHandStrikes, TorchFlame, FrameGeneration, FrameGenPreset, FrameGenScale, RunSpeed, RunWalkToggle, BodyPhysics, BigObjectDistance, FogDistance, LeatherMenu, LootBeamUnique, LootBeamSet, LootBeamRare, LootBeamRunes, LootBeamBrightness, CeilingTorches, ArcaneDecay, ArcaneFade, ManaThreshold, ArcaneIntensity, GlyphDraw, GlyphCircle, GlyphTriangle, GlyphSquare, GlyphLightning, GlyphSpiral, GlyphV, GlyphStar, GlyphWave, LootPick, Count };
+           EyeHeight, ArmSpan, BodyCalibration, SkillGestures, WristMap, WristCompass, ControllerLabels, WeaponSkillIndicators, PlanarSpellAim, VitalsLocation, CriticalAlerts, RenderResolution, NavigationLocation, SmoothTurn, OrdinaryMobBars, MenuDistance, TooltipTiming, ProjectileAimAssist, MeleeHitSpeed, VitalsTilt, HapticStrength, HapticMelee, HapticBowDraw, HapticBowRelease, HapticSpell, HapticInteraction, HapticAlert, HapticShortMelee, BloodVisor, BloodWipe, MeleeThrustSpeed, LootLabelSize, CompanionCounts, StrainVignette, OfflinePlayers, ShieldBashSpeed, DesktopOneEye, MapTopDown, MapRotate, FoveationStrength, StereoRendering, DeferGpuWait, TargetHighlight, HeartbeatStart, SpellLock, StaffPoint, LandingCircles, GroundAim, AimHighlights, HighlightRight, HighlightLeft, ElementalHands, EnemySight, BowLaser, ThrowLift, BottlePhysics, PropPhysics, CompanionAi, ShieldGrip, ShieldOut, ShieldUp, ShieldFollow, ShieldRoll, AimFollowsView, CompanionTactical, LeftHandStrikes, TorchFlame, FrameGeneration, FrameGenPreset, FrameGenScale, RunSpeed, RunWalkToggle, BodyPhysics, BigObjectDistance, FogDistance, LeatherMenu, LootBeamUnique, LootBeamSet, LootBeamRare, LootBeamRunes, LootBeamBrightness, CeilingTorches, ArcaneDecay, ArcaneFade, ManaThreshold, ArcaneIntensity, GlyphDraw, GlyphCircle, GlyphTriangle, GlyphSquare, GlyphLightning, GlyphSpiral, GlyphV, GlyphStar, GlyphWave, LootPick,
+           FoliageFootprint, FoliageOriginX, FoliageOriginZ, FoliageSpacing, FoliageCamera, FoliageHeightScale, FoliageHeightX, FoliageHeightZ, Count };
 // One bit per setting, 128 wide: two words, since MSVC has no 128-bit integer.
 struct ChangeMask {
     static constexpr int Bits=128;
@@ -198,6 +199,14 @@ inline constexpr std::array<Definition,Count> Definitions{{
     // Loot pick (loot_aim.h): 0 Off, A takes the game's nearest item; 1 On, the item you point at. VR Settings > Interface.
     // On by default (owner 2026-11-01, after headset play: "let's make it so it is on by default").
     {"Loot pick", "A picks up the item you point at, not the nearest", L"interactions",L"loot_pick",1,0,1,1},
+    {"Placement footprint", "Bounds of the grass square; increase spacing too to reach farther. Zero hides grass. Apply updates live.", L"foliage",L"footprint",1,0,10,.05f},
+    {"Placement origin X", "Moves the grass square along ground X. 1x is neutral; each 1x adds 90 world units. Apply updates live.", L"foliage",L"origin_x",1,0,10,.05f},
+    {"Placement origin Z", "Moves the grass square along the other ground axis. 1x is neutral; each 1x adds 90 world units. Apply updates live.", L"foliage",L"origin_z",1,0,10,.05f},
+    {"Candidate spacing", "Spreads the fixed candidate budget across a wider square. Raise footprint too. Zero hides grass. Apply updates live.", L"foliage",L"spacing",1,0,10,.05f},
+    {"Camera acceptance", "Widens the placement camera bounds; later culling remains native. Zero rejects grass. Apply updates live.", L"foliage",L"camera_acceptance",1,0,10,.05f},
+    {"Heightmap sampling scale", "Scales terrain texture coordinates. 1x is native; this does not expand the terrain data. Apply updates live.", L"foliage",L"height_scale",1,0,10,.05f},
+    {"Heightmap offset X", "Shifts terrain texture sampling along X. 1x is neutral; each 1x adds half a texture width. Apply updates live.", L"foliage",L"height_offset_x",1,0,10,.05f},
+    {"Heightmap offset Z", "Shifts terrain texture sampling along Z. 1x is neutral; each 1x adds half a texture width. Apply updates live.", L"foliage",L"height_offset_z",1,0,10,.05f},
 }};
 using Values=std::array<float,Count>;
 // The setting holding the skill on glyph shape i (glyph_recognizer.h order).
@@ -244,6 +253,7 @@ inline float Normalize(Key key,float value){
     if(key==VitalsTilt)return vitals::NormalizeTilt(value);
     if(HapticKey(key))return haptics::NormalizeStrength(value);
     if(key==ManaThreshold||key==ArcaneIntensity)return std::clamp(std::round(value/5.f)*5.f,d.min,d.max);
+    if(key>=FoliageFootprint&&key<=FoliageHeightZ)return std::round(std::clamp(value,0.f,10.f)*20.f)/20.f;
     if((key==ControllerLabels||key==VitalsLocation||key==NavigationLocation||key==RenderResolution||key==MenuDistance||key==TooltipTiming||key==ProjectileAimAssist||key==GroundAim||key==SpellLock||key==FoveationStrength||key==StereoRendering||key==FrameGeneration||key==FrameGenPreset||key==FrameGenScale||key==LeatherMenu)&&(value<d.min||value>d.max||value!=std::round(value)))return d.defaultValue;
     value=std::clamp(value,d.min,d.max);
     return d.step==1?std::round(value):value;

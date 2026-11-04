@@ -79,7 +79,7 @@ inline float DragStepPx(float min,float max,float step,float sweepPx){
 // ---- geometry (canvas pixels) ----
 constexpr int Inner=22;                                          // the bronze frame's inner edge
 constexpr Rect PanelInner{Inner,Inner,Width-2*Inner,Height-2*Inner};
-constexpr int RailX=24,RailW=270,TabY=29,TabPitch=78,TabH=66;    // 12 tabs: 29-953
+constexpr int RailX=24,RailW=270,TabY=24,TabPitch=76,TabH=64;    // 13 tabs: 24-1000; 64-pixel targets, 12-pixel gaps
 constexpr int ContentX=328,ContentW=920,ContentRight=ContentX+ContentW;
 constexpr int RowPad=20;                                         // label inset; controls end this far from the slab's right
 // The band's links keep 64 px hit areas (22-86); the title and links are drawn
@@ -1411,7 +1411,9 @@ struct Builder {
         if(const char* status=Status())Add(Role::StatusStrip,{ContentX,StatusY,ContentW,StatusH},{},NoHelp,m.result==Result::Failed||m.result==Result::Conflict?Warn:0,status);
         if(m.confirmClose){
             const bool armed=in.nowMs>=m.confirmAt+Model::ConfirmGuardMs;
-            auto& a=Add(Role::ConfirmDiscard,FooterLeft,{Kind::ConfirmClose},HelpDiscard,uint16_t(armed?Enabled:0),"Discard "+Plural(dirty,"change","changes"));a.icon=draw::Icon::Close;
+            // With the foliage controls a draft can reach three-digit counts.
+            // Keep the complete count in the card; the button must still fit.
+            auto& a=Add(Role::ConfirmDiscard,FooterLeft,{Kind::ConfirmClose},HelpDiscard,uint16_t(armed?Enabled:0),dirty>=100?"Discard changes":"Discard "+Plural(dirty,"change","changes"));a.icon=draw::Icon::Close;
             Add(Role::ConfirmKeep,FooterMid,{Kind::KeepEditing},HelpKeepEditing,uint16_t(armed?Enabled:0),"Keep editing");
             auto& c2=Add(Role::ConfirmApply,FooterRight,{Kind::ApplyClose},HelpApplyClose,uint16_t(armed&&!blocked?Enabled:0),"Apply and close");c2.icon=draw::Icon::Check;
             return;

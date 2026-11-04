@@ -112,6 +112,8 @@ namespace gamestate {bool RunOnUi(D2RL::Threads::Callback callback);}
 #include "render_resolution.h"
 #include "scene_depth.h"
 #include "light_bounds.h"
+#include "foliage.h"
+#include "foliage_settings.h"
 #include "game_device_only.h"
 #include "menu_controls.h"
 #include "xinput_rumble.h"
@@ -10466,6 +10468,10 @@ void TryRegister() {
     // registered: its resource, list and present hooks ran in every mode.)
     framevr::scenedepth::Register(&Log);
     framevr::lightbounds::Register(&Log);
+    // Foliage experiments also run on the desktop while the configured VR
+    // runtime has no headset/session. Neither an XR eye nor a modified camera
+    // is required to replace the game's native grass placement pipeline.
+    framevr::foliage::Register(&Log,+[](){return g_set.platform.load()==1&&g_inWorld.load();});
 #endif
 #ifdef D2RVR_NATIVE_OPENXR
     reshade::register_event<reshade::addon_event::reshade_begin_effects>(&d2rvr::D3D12Only<&OnBeginEffects>::Call);
@@ -10794,6 +10800,7 @@ DWORD WINAPI UpdateThread(void*) {
             prevscan::Tick();
 #ifdef D2RVR_NATIVE_OPENXR
             const bool menuSaved=vrsettings::Poll(g_iniPath);
+            framevr::foliage::Configure(framevr::foliage::FromSettings(vrsettings::Read().values));
 #endif
             const int previousRings=g_set.rings.load();
             const float previousModelRadius=g_set.modelRadius.load();

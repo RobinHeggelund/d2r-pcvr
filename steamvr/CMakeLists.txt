@@ -48,6 +48,10 @@ target_include_directories(minhook PUBLIC ${ROOT}/third_party/minhook/include)
 add_library(d2rcam STATIC ${ROOT}/cleanroom/camera/d2rcam.cpp ${ROOT}/cleanroom/drawdist/drawdist.cpp ${ROOT}/cleanroom/sigscan/sigscan.cpp ${ROOT}/cleanroom/pools/pools.cpp)
 target_include_directories(d2rcam PUBLIC ${ROOT}/cleanroom/camera ${ROOT}/cleanroom/sigscan ${D2RL_SDK}/include)
 add_library(d2rl-pcvr SHARED ${ROOT}/vr/vrcam.cpp ${ROOT}/vr/dlss_mv.cpp ${ROOT}/vr/skeletons.cpp ${ROOT}/vr/gamestate.cpp ${ROOT}/vr/gamecmd.cpp ${ROOT}/vr/probe.cpp ${ROOT}/vr/uitrace.cpp ${ROOT}/vr/hud.cpp ${ROOT}/vr/memdiff.cpp ${ROOT}/vr/writewatch.cpp ${ROOT}/vr/vrcam.rc)
+target_sources(d2rl-pcvr PRIVATE foliage.cpp)
+add_executable(foliage-test foliage_test.cpp)
+target_link_libraries(foliage-test PRIVATE d3d11 d3dcompiler framevr-runtime)
+add_test(NAME foliage-test COMMAND foliage-test)
 # RC compilers do not reliably report included headers to Ninja. A version
 # bump must rebuild Windows VERSIONINFO even in an existing developer tree.
 set_property(SOURCE ${ROOT}/vr/vrcam.rc APPEND PROPERTY OBJECT_DEPENDS ${ROOT}/vr/pcvr_identity.h)
