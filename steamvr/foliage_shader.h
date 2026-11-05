@@ -116,22 +116,28 @@ inline void FootprintGate(Bytes& b,Parameters p){
     Words(b,{0x0300001f,0x10000a,17,0x0100003e,0x01000015}); // if_z: ret; endif
 }
 } // namespace dxbc
-inline bool BuildShader(std::span<const uint8_t> input,Parameters parameters,std::vector<uint8_t>& output){
+inline bool BuildShader(std::span<const uint8_t> input,Parameters parameters,std::vector<uint8_t>& output,unsigned candidateAxis=1){
     using namespace dxbc;
-    output.clear();Bytes source;if(!Canonical(input,source))return false;
-    const auto p=Normalize(parameters);if(p==Parameters{}){output=std::move(source);return true;}
+    output.clear();if(candidateAxis!=1&&candidateAxis!=2)return false;
+    Bytes source;if(!Canonical(input,source))return false;
+    const auto p=Normalize(parameters);if(p==Parameters{}&&candidateAxis==1){output=std::move(source);return true;}
     size_t head,lo,hi;std::vector<Instruction> instructions;if(!Program(source,head,lo,hi,instructions))return false;
-    Bytes body;const auto shift=OriginShift(p);unsigned spacing=0,jitter=0,height=0,clip=0,temps=0;
+    Bytes body;const auto shift=OriginShift(p);unsigned spacing=0,jitter=0,height=0,clip=0,temps=0,groups=0;
+    const float effectiveSpacing=.15625f*p.spacing/float(candidateAxis);
     for(auto ins:instructions){
         Bytes one(source.begin()+ins.begin,source.begin()+ins.end);size_t pos;Instruction local{0,one.size()};
         if((Get(one,0)&0x7ff)==104){if(Get(one,4)!=17)return false;Put(one,4,18);++temps;}
+        if((Get(one,0)&0x7ff)==155){
+            if(one.size()!=16||Get(one,4)!=8||Get(one,8)!=8||Get(one,12)!=1)return false;
+            Put(one,4,8*candidateAxis);Put(one,8,8*candidateAxis);++groups;
+        }
         if(VecAt(one,local,{.15625f,.15625f,0,0},pos)){
             // Zero footprint/spacing suppresses grass, without invalid sampling or extra work.
             if(p.footprint==0||p.spacing==0)Words(body,{0x0100003e});
-            SetVec(one,pos,{.15625f*p.spacing,.15625f*p.spacing,0,0});
+            SetVec(one,pos,{effectiveSpacing,effectiveSpacing,0,0});
             Add(one,0,shift[0],shift[1]);++spacing;
         }else if(VecAt(one,local,{.15625f,0,.15625f,0},pos)){
-            SetVec(one,pos,{.15625f*p.spacing,0,.15625f*p.spacing,0});
+            SetVec(one,pos,{effectiveSpacing,0,effectiveSpacing,0});
             // Skip the extra boundary test when the footprint contains the grid,
             // including native jitter. Defaults therefore reproduce stock exactly.
             if(p.footprint<p.spacing)FootprintGate(one,p);++jitter;
@@ -143,7 +149,7 @@ inline bool BuildShader(std::span<const uint8_t> input,Parameters parameters,std
         }
         body.insert(body.end(),one.begin(),one.end());
     }
-    if(spacing!=1||jitter!=1||height!=1||clip!=1||temps!=1)return false;
+    if(spacing!=1||jitter!=1||height!=1||clip!=1||temps!=1||groups!=1)return false;
     output.assign(source.begin(),source.begin()+lo+8);output.insert(output.end(),body.begin(),body.end());Finish(output,head,lo);
     return true;
 }

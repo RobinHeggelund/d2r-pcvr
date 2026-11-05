@@ -181,12 +181,12 @@ class Editor:
             ttk.Label(panel, text=detail, foreground='#555555').grid(row=row + 1, column=0, columnspan=3, sticky='w', pady=(0, 9))
         buttons = ttk.Frame(panel)
         buttons.grid(row=20, column=0, columnspan=3, sticky='ew', pady=(8, 12))
-        ttk.Button(buttons, text='Native 1x', command=lambda: self.preset(DEFAULTS)).pack(side='left')
+        ttk.Button(buttons, text='Native layout', command=lambda: self.preset(DEFAULTS)).pack(side='left')
         ttk.Button(buttons, text='Centered 360', command=lambda: self.preset(CENTERED)).pack(side='left', padx=8)
         ttk.Button(buttons, text='Reload INI', command=self.reload).pack(side='right')
         ttk.Button(buttons, text='Apply to game', command=self.apply).pack(side='right', padx=8)
         ttk.Label(panel, textvariable=self.status, wraplength=800).grid(row=21, column=0, columnspan=3, sticky='w')
-        ttk.Label(panel, text='0–10x in 0.05x steps. Presets are drafts until Apply.\nNext investigation: Heightmap generation and world coverage.', foreground='#555555').grid(row=22, column=0, columnspan=3, sticky='w', pady=(12, 0))
+        ttk.Label(panel, text='0–10x in 0.05x steps. Presets change placement, not the startup candidate budget.\nNext investigation: Heightmap generation and world coverage.', foreground='#555555').grid(row=22, column=0, columnspan=3, sticky='w', pady=(12, 0))
         self.reload()
 
     def profile_path(self, profile):

@@ -11044,6 +11044,7 @@ D2RL_PLUGIN_EXPORT bool D2RLoaderLoadPlugin(const PluginContext* ctx) noexcept {
     d2rsig::Resolve(ctx);
 
 #ifdef D2RVR_NATIVE_OPENXR
+    framevr::foliage::InstallCapacity(ctx,g_iniPath,&Log);
     roofmaterials::Install(&Log, +[]() { return g_set.platform.load() == 1; });
 #endif
 

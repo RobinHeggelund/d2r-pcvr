@@ -48,10 +48,18 @@ target_include_directories(minhook PUBLIC ${ROOT}/third_party/minhook/include)
 add_library(d2rcam STATIC ${ROOT}/cleanroom/camera/d2rcam.cpp ${ROOT}/cleanroom/drawdist/drawdist.cpp ${ROOT}/cleanroom/sigscan/sigscan.cpp ${ROOT}/cleanroom/pools/pools.cpp)
 target_include_directories(d2rcam PUBLIC ${ROOT}/cleanroom/camera ${ROOT}/cleanroom/sigscan ${D2RL_SDK}/include)
 add_library(d2rl-pcvr SHARED ${ROOT}/vr/vrcam.cpp ${ROOT}/vr/dlss_mv.cpp ${ROOT}/vr/skeletons.cpp ${ROOT}/vr/gamestate.cpp ${ROOT}/vr/gamecmd.cpp ${ROOT}/vr/probe.cpp ${ROOT}/vr/uitrace.cpp ${ROOT}/vr/hud.cpp ${ROOT}/vr/memdiff.cpp ${ROOT}/vr/writewatch.cpp ${ROOT}/vr/vrcam.rc)
-target_sources(d2rl-pcvr PRIVATE foliage.cpp)
+target_sources(d2rl-pcvr PRIVATE foliage.cpp ${ROOT}/vr/foliage_capacity.cpp)
 add_executable(foliage-test foliage_test.cpp)
 target_link_libraries(foliage-test PRIVATE d3d11 d3dcompiler framevr-runtime)
 add_test(NAME foliage-test COMMAND foliage-test)
+add_executable(foliage-capacity-test foliage_capacity_test.cpp ${ROOT}/vr/foliage_capacity.cpp)
+target_include_directories(foliage-capacity-test PRIVATE ${D2RL_SDK}/include)
+target_link_libraries(foliage-capacity-test PRIVATE framevr-runtime)
+add_test(NAME foliage-capacity-test COMMAND foliage-capacity-test)
+# Explicit experiment check: allocates 810 MiB on a separate software device.
+# Kept out of ordinary CTest to avoid that allocation in routine builds.
+add_executable(foliage-gpu-capacity-test foliage_gpu_capacity_test.cpp)
+target_link_libraries(foliage-gpu-capacity-test PRIVATE d3d12 dxgi d3dcompiler framevr-runtime)
 # RC compilers do not reliably report included headers to Ninja. A version
 # bump must rebuild Windows VERSIONINFO even in an existing developer tree.
 set_property(SOURCE ${ROOT}/vr/vrcam.rc APPEND PROPERTY OBJECT_DEPENDS ${ROOT}/vr/pcvr_identity.h)

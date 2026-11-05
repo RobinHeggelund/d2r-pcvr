@@ -55,8 +55,8 @@ static void NativeFixture(const char* path){
     cases.push_back({2,1,1,2,2,.5f,1.5f,1.5f}); // earlier centered experiment, expressed by live sliders
     cases.push_back({.5f,0,10,10,0,0,10,0}); // footprint gate, extreme offsets and zero sampling scale
     cases.push_back({0,10,0,0,10,10,0,10});
-    for(const auto p:cases){
-        std::vector<uint8_t> code;Check(BuildShader(raw,p,code),"transform native shader for slider case");
+    for(unsigned candidateAxis:{1u,2u})for(const auto p:cases){
+        std::vector<uint8_t> code;Check(BuildShader(raw,p,code,candidateAxis),"transform native shader for slider case");
         ComPtr<ID3DBlob> disassembly;Check(SUCCEEDED(D3DDisassemble(code.data(),code.size(),0,nullptr,&disassembly)),"disassemble complete transformed shader");
         ComPtr<ID3D11ComputeShader> shader;
         const HRESULT hr=dev->CreateComputeShader(code.data(),code.size(),nullptr,&shader);
@@ -64,9 +64,9 @@ static void NativeFixture(const char* path){
         Check(SUCCEEDED(hr),"WARP accepts transformed bytecode, including boundary and zero cases");
         auto check=code;dxbc::Checksum(check);Check(check==code,"variant checksum verified");
         const std::string text(static_cast<const char*>(disassembly->GetBufferPointer()),disassembly->GetBufferSize());
-        Check(text.find("dcl_thread_group 8, 8, 1")!=std::string::npos&&text.find("dcl_uav_structured u0, 160")!=std::string::npos,"native dispatch group and output stride retained");
+        Check(text.find(candidateAxis==2?"dcl_thread_group 16, 16, 1":"dcl_thread_group 8, 8, 1")!=std::string::npos&&text.find("dcl_uav_structured u0, 160")!=std::string::npos,"native dispatch group and output stride retained");
         if(p.footprint<p.spacing)Check(text.find("if_z r17.x")!=std::string::npos,"independent footprint gate present");
     }
-    std::printf("Validated %zu native variants from %s\n",cases.size(),path);
+    std::printf("Validated %zu native and 4x variants from %s\n",cases.size()*2,path);
 }
 int main(int argc,char** argv){Basic();for(int i=1;i<argc;++i)NativeFixture(argv[i]);std::printf("%d foliage checks passed\n",checks);}
