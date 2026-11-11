@@ -89,10 +89,10 @@ struct ValueName {
 
 // How a number reads: shown = ini / iniScale,
 // printed with up to `decimals` (trailing zeros dropped), then the unit. A space
-// goes before word units, cm, m and m/s ("65 cm"), none before %, ° and °/s
-// ("45%", "30°"). A word unit ending in s drops it for 1 ("1 ring").
+// goes before word units, cm, m and m/s ("65 cm"), none before %, Ãƒâ€šÃ‚Â° and Ãƒâ€šÃ‚Â°/s
+// ("45%", "30Ãƒâ€šÃ‚Â°"). A word unit ending in s drops it for 1 ("1 ring").
 struct Format {
-    const char* unit="";        // "cm", "°", "%", "°/s", "m/s", "m", "" ...
+    const char* unit="";        // "cm", "Ãƒâ€šÃ‚Â°", "%", "Ãƒâ€šÃ‚Â°/s", "m/s", "m", "" ...
     float iniScale=1;           // ini value = shown value x iniScale (Waist: .01)
     uint8_t decimals=0;         // the most the step needs; "12 m/s", "12.25 m/s"
     bool sign=false;            // signed ranges show "+"
@@ -244,6 +244,7 @@ inline constexpr ContentPage PageTable[]={
     {View::Performance,"Performance",Group::Graphics,Icon::Performance,"Image detail and how far you see, with the last second's frame times below.",true},
     {View::Frames,"Frames",Group::Graphics,Icon::Fast,"How each frame is made: the eyes drawn, generated frames and the GPU wait.",true},
     {View::Environment,"Environment",Group::Graphics,Icon::World,"Extra sights and sound the mod adds to the game world. Far objects: Graphics > Performance.",true},
+    {View::Foliage,"Foliage",Group::Graphics,Icon::World,"Experimental grass placement and height sampling. Candidate budget is selected at startup.",true},
     {View::Guide,"Guide",Group::Header,Icon::Controls,"Each stick opens its hand's wheel. Point the other hand's laser at a wedge to assign a skill.",false},
     {View::WhatsNew,"What's new",Group::Header,Icon::Notes,"Changes in this version of the mod.",false},
     // A safety net: settings no override placed whose owner page is full or unknown
@@ -296,6 +297,8 @@ inline constexpr ContentSection SectionTable[]={
     {View::Performance,"Image"},{View::Performance,"Draw distance"},
     {View::Frames,"Frame generation"},
     {View::Environment,"Sky and dungeons"},{View::Environment,"Glow"},
+    {View::Foliage,"Placement"},{View::Foliage,"Height sampling"},
+
 };
 
 // ---- options and value words (ini order: option i has value min + i) ----
@@ -415,7 +418,7 @@ inline constexpr ValueName OfflinePlayersNames[]={{0,"Game's setting"},{1,"1 pla
 inline constexpr ValueName RunSpeedNames[]={{-10,"Walk"},{0,"Base run"},{10,"Run 10%"},{20,"Run 20%"},{30,"Run 30%"},{40,"Run 40%"},
     {50,"Run 50%"},{60,"Run 60%"},{70,"Run 70%"},{80,"Run 80%"},{90,"Run 90%"},{100,"Full run"}};
 
-// The unit strings (° is \xc2\xb0: the build has no /utf-8).
+// The unit strings (Ãƒâ€šÃ‚Â° is \xc2\xb0: the build has no /utf-8).
 inline constexpr const char* Degrees="\xc2\xb0";
 inline constexpr const char* DegreesPerSecond="\xc2\xb0/s";
 
@@ -819,6 +822,23 @@ inline constexpr Override Overrides[]={
     {.id="motions.off",.page=NotInMenu},{.id="motions.paladin_off",.page=NotInMenu},{.id="motions.druid_off",.page=NotInMenu},
     {.id="motions.amazon_off",.page=NotInMenu},{.id="motions.necromancer_off",.page=NotInMenu},
     {.id="motions.barbarian_off",.page=NotInMenu},{.id="motions.assassin_off",.page=NotInMenu},{.id="motions.warlock_off",.page=NotInMenu},
+    {.id="foliage.footprint",.page=View::Foliage,.section="Placement",.kind=RowKind::Slider,
+     .format={.unit="x",.decimals=2}},
+    {.id="foliage.origin_x",.page=View::Foliage,.section="Placement",.kind=RowKind::Slider,
+     .format={.unit="x",.decimals=2}},
+    {.id="foliage.origin_z",.page=View::Foliage,.section="Placement",.kind=RowKind::Slider,
+     .format={.unit="x",.decimals=2}},
+    {.id="foliage.spacing",.page=View::Foliage,.section="Placement",.kind=RowKind::Slider,
+     .format={.unit="x",.decimals=2}},
+    {.id="foliage.camera_acceptance",.page=View::Foliage,.section="Placement",.kind=RowKind::Slider,
+     .format={.unit="x",.decimals=2}},
+    {.id="foliage.height_scale",.page=View::Foliage,.section="Height sampling",.kind=RowKind::Slider,
+     .format={.unit="x",.decimals=2}},
+    {.id="foliage.height_offset_x",.page=View::Foliage,.section="Height sampling",.kind=RowKind::Slider,
+     .format={.unit="x",.decimals=2}},
+    {.id="foliage.height_offset_z",.page=View::Foliage,.section="Height sampling",.kind=RowKind::Slider,
+     .format={.unit="x",.decimals=2}},
+
 };
 #undef FRAMEVR_OPTIONS
 #undef FRAMEVR_NAMES
@@ -992,7 +1012,7 @@ inline View OwnerOf(const wchar_t* section){
 }
 // Whether an override gave a number format of its own.
 constexpr bool FormatSet(const Format& f){return (f.unit&&*f.unit)||f.iniScale!=1||f.decimals||f.sign||f.hueNames;}
-// The format the ini key's unit suffix asks for (_pct %, _cm cm, _deg °,
+// The format the ini key's unit suffix asks for (_pct %, _cm cm, _deg Ãƒâ€šÃ‚Â°,
 // _m m, _ms ms, _hue a color), decimals from the step, "+" on signed ranges.
 inline Format SuffixFormat(const Definition& d){
     Format f;
@@ -1260,7 +1280,7 @@ inline const Option* OptionOf(const ContentRow& r,float value,const Context& c){
     if(SpellsOnly(r,c))return &SpellLockSpellsOnly[LockSpells(value)?1:0];
     return OptionOf(r,value);
 }
-// The value as the row shows it ("65 cm", "Off", "Strong", "+10°", "Azure", "3 players").
+// The value as the row shows it ("65 cm", "Off", "Strong", "+10Ãƒâ€šÃ‚Â°", "Azure", "3 players").
 inline std::string ValueText(const ContentRow& r,float value,const Context& c={}){
     if(!std::isfinite(value))return "";
     if(const Option* o=OptionOf(r,value,c))return o->label;
@@ -1281,7 +1301,7 @@ inline std::string ValueText(const ContentRow& r,float value,const Context& c={}
     if(r.format.sign&&text!="0"&&text[0]!='-')text="+"+text;
     const std::string unit=r.format.unit?r.format.unit:"";
     if(unit.empty())return text;
-    if(unit[0]=='%'||unit[0]=='\xc2')return text+unit;   // %, °, °/s: no space
+    if(unit[0]=='%'||unit[0]=='\xc2')return text+unit;   // %, Ãƒâ€šÃ‚Â°, Ãƒâ€šÃ‚Â°/s: no space
     bool word=true;
     for(char ch:unit)if(ch<'a'||ch>'z'){word=false;break;}
     if(word&&unit.size()>1&&unit.back()=='s'&&(text=="1"||text=="+1"||text=="-1"))return text+" "+unit.substr(0,unit.size()-1);

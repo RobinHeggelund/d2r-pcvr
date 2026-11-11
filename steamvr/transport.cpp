@@ -6970,6 +6970,15 @@ bool HandleWindowFocusMessage(void* window,uint32_t message,uint64_t token,int64
 }
 
 void Register(LogFn log,PanelFn panel,PanelFn world,PanelFn toggle) {
+    // Desktop foliage testing keeps VR's first-person mode and grass overrides,
+    // but must never enter OpenXR's synchronous five-second initialization retry
+    // from Present. This process-only opt-out is set by Play-Foliage-Desktop.ps1.
+    // Require exactly "1"; absent, empty and other values retain normal VR.
+    wchar_t desktop[2]{};
+    if(GetEnvironmentVariableW(L"D2R_PCVR_DESKTOP_TEST",desktop,2)==1&&desktop[0]==L'1') {
+        if(log)log("Frame OpenXR: desktop testing requested; headset transport and initialization retries disabled for this process");
+        return;
+    }
     std::lock_guard lock(mutex);logger=log;wantsPanel=panel;inWorld=world;toggleMenus=toggle;if(registered)return;
     reshade::register_event<reshade::addon_event::present>(&Prepare);
     reshade::register_event<reshade::addon_event::reshade_present>(&AfterEffects);

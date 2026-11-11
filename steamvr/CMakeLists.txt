@@ -64,6 +64,22 @@ target_include_directories(minhook PUBLIC ${ROOT}/third_party/minhook/include)
 add_library(d2rcam STATIC ${ROOT}/cleanroom/camera/d2rcam.cpp ${ROOT}/cleanroom/drawdist/drawdist.cpp ${ROOT}/cleanroom/sigscan/sigscan.cpp ${ROOT}/cleanroom/pools/pools.cpp)
 target_include_directories(d2rcam PUBLIC ${ROOT}/cleanroom/camera ${ROOT}/cleanroom/sigscan ${D2RL_SDK}/include)
 add_library(d2rl-pcvr SHARED ${ROOT}/vr/vrcam.cpp ${ROOT}/vr/dlss_mv.cpp ${ROOT}/vr/skeletons.cpp ${ROOT}/vr/gamestate.cpp ${ROOT}/vr/gamecmd.cpp ${ROOT}/vr/probe.cpp ${ROOT}/vr/uitrace.cpp ${ROOT}/vr/hud.cpp ${ROOT}/vr/memdiff.cpp ${ROOT}/vr/writewatch.cpp ${ROOT}/vr/vrcam.rc)
+target_sources(d2rl-pcvr PRIVATE foliage.cpp ${ROOT}/vr/foliage_capacity.cpp)
+target_sources(d2rl-pcvr PRIVATE ${ROOT}/vr/room_subscription.cpp)
+add_executable(room-subscription-test room_subscription_test.cpp)
+target_compile_options(room-subscription-test PRIVATE -UNDEBUG)
+add_test(NAME room-subscription-test COMMAND room-subscription-test)
+add_executable(foliage-test foliage_test.cpp)
+target_link_libraries(foliage-test PRIVATE d3d11 d3dcompiler framevr-runtime)
+add_test(NAME foliage-test COMMAND foliage-test)
+add_executable(foliage-capacity-test foliage_capacity_test.cpp ${ROOT}/vr/foliage_capacity.cpp)
+target_include_directories(foliage-capacity-test PRIVATE ${D2RL_SDK}/include)
+target_link_libraries(foliage-capacity-test PRIVATE framevr-runtime)
+add_test(NAME foliage-capacity-test COMMAND foliage-capacity-test)
+# Explicit experiment check: allocates 810 MiB on a separate software device.
+# Kept out of ordinary CTest to avoid that allocation in routine builds.
+add_executable(foliage-gpu-capacity-test foliage_gpu_capacity_test.cpp)
+target_link_libraries(foliage-gpu-capacity-test PRIVATE d3d12 dxgi d3dcompiler framevr-runtime)
 # RC compilers do not reliably report included headers to Ninja. A version
 # bump must rebuild Windows VERSIONINFO even in an existing developer tree.
 set_property(SOURCE ${ROOT}/vr/vrcam.rc APPEND PROPERTY OBJECT_DEPENDS ${ROOT}/vr/pcvr_identity.h)
@@ -111,6 +127,11 @@ add_executable(map-sigs-test map_sigs_test.cpp)   # Map view = Full map: the pat
 target_include_directories(map-sigs-test PRIVATE ${ROOT}/cleanroom/sigscan)
 add_executable(far-objects-test far_objects_test.cpp)   # big objects drawn farther: the reach, the setting, the game's test
 target_include_directories(far-objects-test PRIVATE ${ROOT}/cleanroom/sigscan ${ROOT}/cleanroom/camera)
+add_executable(drawdist-runtime-test drawdist_runtime_test.cpp)
+target_include_directories(drawdist-runtime-test PRIVATE ${D2RL_SDK}/include)
+target_link_libraries(drawdist-runtime-test PRIVATE framevr-runtime)
+add_executable(foliage-runtime-status-test foliage_runtime_status_test.cpp)
+target_link_libraries(foliage-runtime-status-test PRIVATE framevr-runtime)
 add_executable(offline-difficulty-test offline_difficulty_test.cpp)
 target_include_directories(offline-difficulty-test PRIVATE ${ROOT}/cleanroom/sigscan ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(offline-difficulty-test PRIVATE framevr-runtime)
@@ -474,7 +495,7 @@ foreach(test_target IN ITEMS memory-test biome-list-test hook-metrics-test activ
     portal-billboard-test shrine-trace-test shrine-placement-test overlay-view-test bone-armor-height-test composition-layers-test projectile-rules-test environment-cutaway-test roof-materials-test game-ceiling-test stereo-prop-physics-test dropped-bottles-test props-test limb-rig-test aged-cache-test ecs-storage-test look-at-test limb-physics-test limb-worker-test leather-menu-test stash-buttons-test stats-button-test menu-drop-test arcane-decay-test respec-button-test vr-keyboard-test
     combat-rules-test strike-skills-test zeal-light-test skill-usage-test shield-guard-test guard-strain-test heartbeat-test haptic-impact-test haptic-heartbeat-test run-speed-test room-scale-test room-steps-test walk-direction-test logging-test log-rotation-test melee-contact-test bow-bash-test weapon-heft-test hit-reactions-test melee-weapon-test breakables-test offline-difficulty-test enemy-sight-test attack-speed-test world-coordinates-test bow-flight-test bow-laser-test spell-cast-test spell-aim-assist-test tactical-chord-test glyph-recognizer-test glyph-trail-test glyph-cast-test spell-motion-test motions-amazon-test motions-barbarian-test motions-necromancer-test motions-warlock-test motions-assassin-test motions-paladin-test motions-druid-test bone-graft-test
     interaction-test dev-scenarios-test native-belt-test wrist-hud-test map-zoom-test floating-map-test navigation-info-test companions-test active-effects-test skill-cooldowns-test dropped-item-labels-test stick-gestures-test show-items-command-test native-hud-test render-resolution-test render-pointer-test scene-depth-test game-device-only-test controller-bindings-test journal-test native-panels-test talk-stop-test sheet-walk-test room-stitch-test ceiling-top-test loot-beams-test
-    vr-settings-test vr-settings-layout-test vr-settings-pointer-test vr-settings-store-test controller-labels-test math-test deferred-draw-test monster-bars-test loot-aim-test telegraph-test aim-reach-test aim-rules-test teleport-arc-test target-cone-test gaze-test window-focus-test callback-ticket-test local-player-test shield-block-test trigger-melee-test companion-ai-test torch-light-test light-radius-test world-sound-test frame-generation-test late-wait-test turn-capture-test panel-atlas-test atlas-dirty-test far-objects-test)
+    vr-settings-test vr-settings-layout-test vr-settings-pointer-test vr-settings-store-test controller-labels-test math-test deferred-draw-test monster-bars-test loot-aim-test telegraph-test aim-reach-test aim-rules-test teleport-arc-test target-cone-test gaze-test window-focus-test callback-ticket-test local-player-test shield-block-test trigger-melee-test companion-ai-test torch-light-test light-radius-test world-sound-test frame-generation-test late-wait-test turn-capture-test panel-atlas-test atlas-dirty-test far-objects-test drawdist-runtime-test foliage-runtime-status-test)
   # These fixtures use assert for their checks, including in Release builds.
   if(MSVC)
     target_compile_options(${test_target} PRIVATE /UNDEBUG)

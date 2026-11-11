@@ -509,6 +509,17 @@ int main(){
         Check(vrsettings::Read().values[SummonRangeMultiplier]==multiplier&&Int(path,L"custom",L"keep")==12345,
               "shared fractional multiplier survives reload and preserves other settings");
     }
+    // Foliage sliders span high-word change bits and preserve fractional values.
+    for(float value:{0.f,.05f,2.35f,10.f,1.f}){
+        model.Open(vrsettings::Read());
+        for(int key=FoliageFootprint;key<=FoliageHeightZ;++key)model.Set(Key(key),value);
+        request=model.Click({Kind::Apply});
+        Check(vrsettings::Submit(request)&&vrsettings::Poll(name),"save all foliage sliders in one transaction");
+        const auto foliageSaved=vrsettings::Read();
+        for(int key=FoliageFootprint;key<=FoliageHeightZ;++key)
+            Check(std::fabs(foliageSaved.values[key]-value)<.0001f,"foliage zero, fractional and maximum values survive reload");
+        Check(Int(path,L"custom",L"keep")==12345,"foliage edits preserve unrelated INI settings");
+    }
     model.Open(vrsettings::Read());model.Click({Kind::Change,Motion,-1});request=model.Click({Kind::Apply});
     Check(DeleteFileW(name)&&vrsettings::Submit(request)&&!vrsettings::Poll(name),"missing file fails safely");
     Check(!vrsettings::Read().ready&&vrsettings::Read().result==Result::Failed,"failure status published");

@@ -33,6 +33,9 @@
 #include "../steamvr/biome_list.h"
 #include "../steamvr/limb_tuning.h"
 #include "../steamvr/far_objects.h"
+#include "../cleanroom/drawdist/drawdist.h"
+#include "../steamvr/foliage_runtime_status.h"
+#include "room_subscription.h"
 #include "../steamvr/interact_press.h"
 #include "../steamvr/sewer_interaction.h"
 #include "../steamvr/dropped_item_labels.h"
@@ -127,6 +130,8 @@ namespace gamestate {bool RunOnUi(D2RL::Threads::Callback callback);}
 #include "render_resolution.h"
 #include "scene_depth.h"
 #include "light_bounds.h"
+#include "foliage.h"
+#include "foliage_settings.h"
 #include "game_device_only.h"
 #include "menu_controls.h"
 #include "xinput_rumble.h"
@@ -7096,6 +7101,7 @@ void MouseTick() {
 std::atomic<bool> g_renderDirty{true};
 std::atomic<bool> g_bigDirty{true};
 void ApplyRender() {
+    d2rcam::drawdist::Refresh();
     if (g_renderDirty.load()) {
         d2rcam::SetRenderRadius(g_set.rings.load());
         if (d2rcam::SetModelRadius(g_set.modelRadius.load())) {
@@ -7117,6 +7123,31 @@ void ApplyRender() {
         ticks = 0;
         LogF("vrcam: big objects - %u model decisions kept past %.0f by size in 10 s", d2rcam::TakeBigModelsKept(), g_set.modelRadius.load());
     }
+#ifdef D2RVR_NATIVE_OPENXR
+    // Published from the existing worker, never from Present/the render hook.
+    // Per-profile shared memory lets the desktop GUI show live readback without
+    // polling logs, writing to disk or changing the game's INI.
+    static framevr::foliagestatus::Writer statusWriter;
+    const auto status=d2rcam::drawdist::ReadStatus();const auto units=roomsubscription::ReadStatus();char json[2000];
+    std::snprintf(json,sizeof json,
+        "{\"schema\":1,\"pid\":%lu,\"tick_ms\":%llu,\"in_world\":%s,\"requested_rings\":%d,"
+        "\"requested_model_radius\":%.3f,\"active_model_radius\":%.3f,\"room_hooks\":%s,"
+        "\"tiler_ready\":%s,\"append_ready\":%s,\"radius_ready\":%s,\"recalculate_ready\":%s,"
+        "\"expansion_state\":%d,\"furthest_room\":%d,\"rooms_added\":%d,\"rooms_loaded\":%d,"
+        "\"tile_attempts\":%d,\"last_expansion_ms\":%llu,"
+        "\"subscription_ready\":%s,\"subscription_requested_rings\":%d,\"subscription_state\":%d,"
+        "\"subscription_held_rooms\":%u,\"subscription_client_rooms\":%u,\"subscription_depth\":%u,"
+        "\"subscription_capped\":%s,\"subscription_transitions\":%llu,"
+        "\"subscription_update_passes\":%llu,\"subscription_removal_passes\":%llu,\"subscription_update_rooms\":%u}",
+        GetCurrentProcessId(),static_cast<unsigned long long>(GetTickCount64()),g_inWorld.load()?"true":"false",g_set.rings.load(),
+        g_set.modelRadius.load(),status.activeModelRadius,status.hooks?"true":"false",status.tiler?"true":"false",
+        status.append?"true":"false",status.modelRadius?"true":"false",status.recalculate?"true":"false",
+        status.expansion,status.furthestRoom,status.roomsAdded,status.roomsLoaded,status.tileAttempts,
+        static_cast<unsigned long long>(status.lastExpansionMs),units.ready?"true":"false",units.requested,units.state,
+        units.held,units.subscribed,units.depth,units.truncated?"true":"false",static_cast<unsigned long long>(units.transitions),
+        static_cast<unsigned long long>(units.updatePasses),static_cast<unsigned long long>(units.removalPasses),units.updateRooms);
+    statusWriter.Publish(g_iniPath,json);
+#endif
 }
 
 void ToggleShooter() {
@@ -12171,6 +12202,10 @@ void TryRegister() {
     // registered: its resource, list and present hooks ran in every mode.)
     framevr::scenedepth::Register(&Log);
     framevr::lightbounds::Register(&Log);
+    // Foliage experiments also run on the desktop while the configured VR
+    // runtime has no headset/session. Neither an XR eye nor a modified camera
+    // is required to replace the game's native grass placement pipeline.
+    framevr::foliage::Register(&Log,+[](){return g_set.platform.load()==1&&g_inWorld.load();});
 #endif
 #ifdef D2RVR_NATIVE_OPENXR
     reshade::register_event<reshade::addon_event::reshade_begin_effects>(&d2rvr::D3D12Only<&OnBeginEffects>::Call);
@@ -12510,6 +12545,10 @@ DWORD WINAPI UpdateThread(void*) {
             prevscan::Tick();
 #ifdef D2RVR_NATIVE_OPENXR
             const bool menuSaved=vrsettings::Poll(g_iniPath);
+            auto foliageParameters=framevr::foliage::FromSettings(vrsettings::Read().values);
+            foliageParameters.localExclusion=IniB(L"foliage",L"local_exclusion",true);
+            foliageParameters.roomMask=IniB(L"foliage",L"room_mask",true);
+            framevr::foliage::Configure(foliageParameters);
 #endif
             const int previousRings=g_set.rings.load();
             const float previousModelRadius=g_set.modelRadius.load();
@@ -12537,6 +12576,7 @@ DWORD WINAPI UpdateThread(void*) {
             if (!AllHooksIn()) InstallHooks();
 #ifdef D2RVR_NATIVE_OPENXR
             offlinedifficulty::Install();
+            roomsubscription::Poll(g_ctx,g_iniPath,g_set.platform.load()==1);
             offlinedifficulty::Report();
             enemysight::Install();
             enemysight::Tick();
@@ -12767,6 +12807,7 @@ D2RL_PLUGIN_EXPORT bool D2RLoaderLoadPlugin(const PluginContext* ctx) noexcept {
     engineunits::Init(&Log, &fx::GameCeilingInputs, ctx->modDirectory);
 
 #ifdef D2RVR_NATIVE_OPENXR
+    framevr::foliage::InstallCapacity(ctx,g_iniPath,&Log);
     roofmaterials::Install(&Log, +[]() { return g_set.platform.load() == 1; });
 #endif
 

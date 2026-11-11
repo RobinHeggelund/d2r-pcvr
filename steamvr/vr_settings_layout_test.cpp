@@ -144,6 +144,15 @@ static const GoldenRow Golden[]={
     {"torch.flame",View::Environment,1,content::RowKind::Toggle,"Torch flame",0,0},
     {"torch.spell_hands_pct",View::Environment,1,content::RowKind::Slider,"Spell hand light",0,1},   // a Sorceress's (2026-11-06)
     {"light.radius_boost_pct",View::Environment,1,content::RowKind::Slider,"Light Radius boost",0,0},   // #440
+    {"foliage.footprint",View::Foliage,0,content::RowKind::Slider,"Placement footprint",0,0},
+    {"foliage.origin_x",View::Foliage,0,content::RowKind::Slider,"Placement origin X",0,0},
+    {"foliage.origin_z",View::Foliage,0,content::RowKind::Slider,"Placement origin Z",0,0},
+    {"foliage.spacing",View::Foliage,0,content::RowKind::Slider,"Candidate spacing",0,0},
+    {"foliage.camera_acceptance",View::Foliage,0,content::RowKind::Slider,"Camera acceptance",0,0},
+    {"foliage.height_scale",View::Foliage,1,content::RowKind::Slider,"Heightmap sampling scale",0,0},
+    {"foliage.height_offset_x",View::Foliage,1,content::RowKind::Slider,"Heightmap offset X",0,0},
+    {"foliage.height_offset_z",View::Foliage,1,content::RowKind::Slider,"Heightmap offset Z",0,0},
+
 };
 
 static bool PopoverLayer(L::Role r){return r==L::Role::PopoverDim||r==L::Role::Popover||r==L::Role::PopoverTitle||r==L::Role::PopoverOption||r==L::Role::PopoverHint||r==L::Role::ColorDot||r==L::Role::PopoverLabel||r==L::Role::PopoverSwitch;}
@@ -238,7 +247,7 @@ int main(int argc,char** argv){
     }
     // ---- the map: no row lost, none left to More, the names and the owner's pairs ----
     {
-        Check(tables.rowCount==112,"112 settings on the menu, each one row");   // - Dominant hand (2026-11-10: Left-handed is the one switch)   // + Left-handed (#307)   // 94 in #419, + Melee reach, Walk direction, Room follows you (2026-11-08), Light Radius boost (#440), + Weapon heft, Bow bash (#443), + Aim with your eyes (2026-11-08), Merc potion throw autoaim (#424), Click to drink (#425), Skill cooldowns (2026-11-09), + Summon range (#426), T cross to calibrate (#423), Heads turn to you (2026-11-09), Echo (world sound, 2026-11-09), + Monsters stagger, Heavy hits knock back (hit reactions, 2026-11-09), + Hit feel by target, Felt heartbeat (richer haptics)
+        Check(tables.rowCount==120,"112 upstream settings plus eight foliage sliders, each one row");
         for(size_t i=0;i<tables.rowCount;++i)Check(!tables.rows[i].fallback&&tables.rows[i].page!=View::More,std::string("every setting has its page: ")+tables.rows[i].label);
         Check(content::Menu().report.empty(),"the tidy report is empty");
         struct Want {content::Group group;const char* name;std::vector<const char*> pages;};
@@ -247,7 +256,7 @@ int main(int argc,char** argv){
             {content::Group::Comfort,"Comfort",{"Moving","Body"}},
             {content::Group::Controls,"Controls",{"Hands","Vibration"}},
             {content::Group::Interface,"Interface",{"Wrist","Menus","Labels","Outlines","Warnings"}},
-            {content::Group::Graphics,"Graphics",{"Performance","Frames","Environment"}}};
+            {content::Group::Graphics,"Graphics",{"Performance","Frames","Environment","Foliage"}}};
         Check(std::size(content::GroupTable)==rail.size(),"five groups");
         for(size_t g=0;g<rail.size()&&g<std::size(content::GroupTable);++g){
             Check(content::GroupTable[g].id==rail[g].group&&std::string(content::GroupTable[g].name)==rail[g].name,std::string("group in order: ")+rail[g].name);
